@@ -8,6 +8,7 @@ using namespace std;
 #include <mutex>
 #include <future>
 #include "ThreadPool.hpp"
+#include "barrier.hpp"
 
 #pragma region ThreadBasics
 void basic_function_no_return(string message) {
@@ -332,7 +333,68 @@ int ThreadPooling()
 }
 #pragma endregion
 
+#pragma region Barriers
+vector<int> dataVector(3, 0);
+mutex dataMutex;
+barrier simpleBarrier(4);
+
+void reader()
+{
+    unsigned int i;
+    std::string threadId = std::to_string(std::hash<std::thread::id>{}(std::this_thread::get_id()));
+
+    simpleBarrier.count_down_and_wait(); // wait until 4 thread call this method (number = the value set in barrier constructor)
+
+    for (i = 0; i < dataVector.size(); i++)
+    {
+        std::cout << threadId + " - Requesting reading lock\n";
+        dataMutex.lock();
+        int read = dataVector[i];
+        dataMutex.unlock();
+        std::cout << threadId + " - Outside reader critical section\n";
+    }
+}
+
+void writer()
+{
+    unsigned int i;
+    std::string threadId = std::to_string(std::hash<std::thread::id>{}(std::this_thread::get_id()));
+
+    simpleBarrier.count_down_and_wait(); // wait until 4 thread call this method (number = the value set in barrier constructor)
+
+    for (i = 0; i < dataVector.size(); i++)
+    {
+        std::cout << threadId + " - Requesting writer lock\n";
+        dataMutex.lock();
+        dataVector[i] = i;
+        dataMutex.unlock();
+        cout << threadId + " - Outside writer critical section\n";
+    }
+}
+
+int Barrier()
+{
+    vector<thread> readers; vector<thread> writers; //hold the threads
+
+    int i;
+
+    for (i = 0; i < 2; i++) //create readers
+        readers.emplace_back(reader);
+
+    for (i = 0; i < 2; i++)
+        writers.emplace_back(writer);
+
+    for (auto& reader : readers)
+        reader.join();
+
+    for (auto& writer : writers)
+        writer.join();
+
+    return 0;
+}
+#pragma endregion
+
 
 int main() {
-    ThreadPooling();
+    Barrier();
 }
