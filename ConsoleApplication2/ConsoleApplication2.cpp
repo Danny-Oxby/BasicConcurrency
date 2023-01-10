@@ -1,9 +1,13 @@
 using namespace std;
 
 #include <iostream>
+#include <sstream>
 #include <thread>
 #include <windows.h>
 #include <chrono>
+#include <mutex>
+#include <future>
+#include "ThreadPool.hpp"
 
 #pragma region ThreadBasics
 void basic_function_no_return(string message) {
@@ -84,6 +88,251 @@ int Race_condition()
 }
 #pragma endregion
 
+#pragma region BasicMutex (solving race condition issue)
+class mutexcounter
+{
+private:
+    int value;
+    mutex lock;
+
+public:
+    mutexcounter() { this->value = 0; }
+    ~mutexcounter() { };
+    void add(int increment) {
+        lock.lock();
+        this->value += increment;
+        lock.unlock();
+    }
+    int get() { return value; }
+};
+
+static mutexcounter racymutex;
+
+void mutexincrementer()
+{ //timers make the race more obviouse
+    std::this_thread::sleep_for(std::chrono::microseconds(10));
+    for (int i = 0; i < 100; i++)
+    {
+        racymutex.add(1);
+        std::this_thread::sleep_for(std::chrono::microseconds(10));
+    }
+}
+
+void mutexdecrementer()
+{
+    std::this_thread::sleep_for(std::chrono::microseconds(10));
+    for (int i = 0; i < 100; i++)
+    {
+        racymutex.add(-1);
+        std::this_thread::sleep_for(std::chrono::microseconds(10));
+    }
+}
+
+int mutex_race_condition()
+{
+    std::thread t1(mutexincrementer);
+    std::thread t2(mutexdecrementer);
+
+    t1.join(); t2.join();
+
+    std::cout << "Final value: " << racymutex.get() << std::endl;
+
+    return 0;
+}
+#pragma endregion
+
+#pragma region AccurateTimer
+double PCFreq = 0.0; // convert the requeency to double for the maths
+__int64 CounterStart = 0;
+LARGE_INTEGER liStart;
+LARGE_INTEGER liEnd;
+
+void StartCounter()
+{
+    LARGE_INTEGER li;
+    if (!QueryPerformanceFrequency(&li))
+        cout << "QueryPerformanceFrequency failed!\n";
+
+    //find the frequency before starting the timer
+    PCFreq = double(li.QuadPart) / 1000.0; // quadpart/ 1000.0 to find milliseconds
+    QueryPerformanceCounter(&liStart); //get the start time
+}
+
+double GetCounter()
+{
+    QueryPerformanceCounter(&liEnd); //get the end time
+    return double(liEnd.QuadPart - liStart.QuadPart) / PCFreq;
+}
+
+int Query_timer()
+{
+    StartCounter();
+    Sleep(1000);
+    cout << GetCounter() << "\n";
+    return 0;
+}
+#pragma endregion
+
+void PrimeBoolOutput(bool ret)
+{
+    if (ret) std::cout << "313222313 is prime!\n";
+    else std::cout << "313222313 is not prime.\n";
+}
+
+#pragma region Futures
+// a non-optimized way of checking for prime numbers:
+bool is_prime(int x)
+{
+    std::cout << "Calculating. Please, wait...\n";
+
+    for (int i = 2; i < x; ++i)
+        if (x % i == 0)
+            return false;
+
+    return true;
+}
+
+int Future_returns()
+{
+    // call is_prime(313222313) asynchronously:
+    std::future<bool> fut = std::async(is_prime, 313222313);
+    bool ret = fut.get();      // waits for is_prime to return
+
+    PrimeBoolOutput(ret);
+
+    return 0;
+}
+
+
+int Asynchronouse_Future_returns() // using the async future policy
+{
+    // call is_prime(313222313) asynchronously:
+    std::future<bool> fut = std::async(std::launch::async, is_prime, 313222313);
+    bool ret = fut.get();      // waits for is_prime to return
+
+    PrimeBoolOutput(ret);
+
+    return 0;
+}
+#pragma endregion
+
+#pragma region Promises
+// a non-optimized way of checking for prime numbers:
+void prom_is_prime(int x, std::promise<bool>&& prom)
+{
+    std::cout << "Calculating. Please, wait...\n";
+
+    for (int i = 2; i < x; ++i)
+        if (x % i == 0)
+        {
+            prom.set_value(false);
+            return; // exit early
+        }
+
+    prom.set_value(true);
+}
+
+int Promise_returns()
+{
+    std::promise<bool> prom;
+    std::future<bool> fut = prom.get_future();
+
+    std::thread t(prom_is_prime, 313222313, std::move(prom));
+    bool ret = fut.get();
+
+    PrimeBoolOutput(ret);
+
+    t.join();
+
+    return 0;
+}
+#pragma endregion
+
+#pragma region Condition Variables
+
+#define THREADCOUNT 20
+int threadHelloComplete = 0;
+mutex threadMutex;
+condition_variable cv;
+
+void printHello(int id)
+{
+    unique_lock<mutex> lock(threadMutex); // unique lock << only one thread at a time
+
+    while (threadHelloComplete < id) // only allow the thread that meets this condition to advance
+        cv.wait(lock); // all threads wait here
+
+    cout << "Hello from thread " << id << endl;
+    threadHelloComplete++; // update the counter for the condition variable
+    cv.notify_all(); // wake up the remaining threads
+}
+
+int Condition_varibles()
+{
+    thread* printThreads[THREADCOUNT];
+    int i;
+
+    for (i = 0; i < THREADCOUNT; i++)
+        printThreads[i] = new thread(printHello, i);
+
+    for (i = 0; i < THREADCOUNT; i++)
+        printThreads[i]->join(); // terminat all threads
+
+    return 0;
+}
+
+void printHello_nondeterministic_example(unsigned int id)
+{
+    std::cout << "Hello world from thread " << id << std::endl;
+}
+
+int Conditionless_variables()
+{
+    thread* printThreads[THREADCOUNT];
+    unsigned int i;
+
+    for (i = 0; i < THREADCOUNT; i++)
+        printThreads[i] = new thread(printHello_nondeterministic_example, i);
+
+    for (i = 0; i < THREADCOUNT; i++)
+        printThreads[i]->join();
+
+    return 0;
+}
+#pragma endregion
+
+#pragma region Thread Pooling
+int threadTask(int i)
+{
+    stringstream ss; string intro; // create variables
+    ss << i; ss >> intro; intro = "entered task " + intro + "\n"; // assign variable values
+    cout << intro;
+    this_thread::sleep_for(std::chrono::seconds(3));
+    return i * i;
+}
+
+int ThreadPooling()
+{
+    ThreadPool pool(4); // create a thread pool of size 4
+    vector<future<int>> results;
+
+    for (int i = 0; i < 8; ++i) { // add 8 threads to the pool
+        results.emplace_back(
+            pool.enqueue(threadTask, i));
+    }
+
+    for (auto&& result : results)
+    {
+        stringstream ss; string outro; // create variables
+        ss << result.get(); ss >> outro; outro = "result " + outro + "\n"; // assign variable values
+        cout << outro;
+    }
+
+    return 0;
+}
+#pragma endregion
+
+
 int main() {
-    Creating_threads();
+    ThreadPooling();
 }
