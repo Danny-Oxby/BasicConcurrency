@@ -298,6 +298,48 @@ int Conditionless_variables()
 
     return 0;
 }
+
+#pragma region mock exam example << Huffman
+    #define threads 10
+    mutex huffmanMutex;
+    condition_variable convar;
+    int first_pass = 0; int second_pass = 0;
+    bool histogrambusy = false;
+
+    void HuffmanEncoding(string filename) 
+    {
+        unique_lock<mutex> lock(threadMutex); // unique lock << only one thread at a time
+    
+        //Do first pass encoding here
+        while(histogrambusy) // pnly allow one thread at a time
+            cv.wait(lock); // all threads wait here
+
+        histogrambusy = true; //update the histogram
+        cout << "add to histogram\n";
+        histogrambusy = false;
+        cv.notify_all(); // wake up the remaining threads
+
+        first_pass++; cout << "1st pass complete\n"; // update the condition variable
+        while (first_pass < threads) // only allow the thread that meets this condition to advance
+            cv.wait(lock); // all threads wait here
+        cv.notify_all(); // wake up the remaining threads
+
+        //Do second pass encoding
+        second_pass++; cout << "2nd pass complete\n";//update the condition variable
+        while (second_pass < threads) // only allow the thread that meets this condition to advance
+            cv.wait(lock); // all threads wait here
+        cv.notify_all(); // wake up the remaining threads
+    }
+    void historgram_example() {
+        thread* huffmanThreads[threads]; //create a list of threads
+        for (int i = 0; i < threads; i++)
+            huffmanThreads[i] = new thread(HuffmanEncoding, "file");
+
+        for (int i = 0; i < threads; i++)
+            huffmanThreads[i]->join();
+    }
+#pragma endregion
+
 #pragma endregion
 
 #pragma region Thread Pooling
@@ -394,5 +436,5 @@ int Barrier()
 
 
 int main() {
-    Barrier();
+    historgram_example();
 }
