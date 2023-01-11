@@ -186,14 +186,14 @@ void FindingTValuesUsingCounter() { // for Amdahl’s law
 
     QueryPerformanceCounter(&Start); //get the start time for t1
     cout << "I don't change\n";// Do T1 things
-    Sleep(10);
+    Sleep(10); // simluating code actions
     QueryPerformanceCounter(&EnhanceStart); //get the start time for t2 and t4
     cout << "enhance me\n";//do the enhanced code and unenhacend code timing here
-    Sleep(100);
+    Sleep(100); // simluating code actions
     QueryPerformanceCounter(&EnhanceEnd); //get the start time for t3
     cout << "I don't change either\n";// Do T3 things
-    Sleep(10);
-    QueryPerformanceCounter(&End); //get the start time for t2 and t4
+    Sleep(10); // simluating code actions
+    QueryPerformanceCounter(&End); //get the end time for t3
 
     //print values in millisecond format
     cout << "t1 : " << double(EnhanceStart.QuadPart - Start.QuadPart) / PCFreq << "\n";
