@@ -142,7 +142,7 @@ int mutex_race_condition()
 }
 #pragma endregion
 
-#pragma region AccurateTimer plus example
+#pragma region AccurateTimer plus Amdahl’s law Example
 double PCFreq = 0.0; // convert the requeency to double for the maths
 __int64 CounterStart = 0;
 LARGE_INTEGER liStart;
@@ -188,7 +188,7 @@ void FindingTValuesUsingCounter() { // for Amdahl’s law
     cout << "I don't change\n";// Do T1 things
     Sleep(10);
     QueryPerformanceCounter(&EnhanceStart); //get the start time for t2 and t4
-    cout << "enhance me\n";//do the enhanced code and uninhacend code timing here
+    cout << "enhance me\n";//do the enhanced code and unenhacend code timing here
     Sleep(100);
     QueryPerformanceCounter(&EnhanceEnd); //get the start time for t3
     cout << "I don't change either\n";// Do T3 things
