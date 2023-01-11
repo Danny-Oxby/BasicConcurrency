@@ -142,7 +142,7 @@ int mutex_race_condition()
 }
 #pragma endregion
 
-#pragma region AccurateTimer plus Amdahl’s law Example
+#pragma region AccurateTimer plus Amdahls law Example
 double PCFreq = 0.0; // convert the requeency to double for the maths
 __int64 CounterStart = 0;
 LARGE_INTEGER liStart;
@@ -465,5 +465,5 @@ int Barrier()
 
 
 int main() {
-    ThreadPooling();
+    FindingTValuesUsingCounter();
 }
