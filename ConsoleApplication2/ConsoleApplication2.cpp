@@ -172,6 +172,35 @@ int Query_timer()
     cout << GetCounter() << "\n";
     return 0;
 }
+
+void FindingTValuesUsingCounter() { // for Amdahl’s law
+    double localPCFreq = 0.0; // convert the requeency to double for the maths
+    __int64 localCounterStart = 0;
+    LARGE_INTEGER Start; LARGE_INTEGER EnhanceStart;
+    LARGE_INTEGER EnhanceEnd; LARGE_INTEGER End;
+
+    LARGE_INTEGER frequency; //find the frequency before starting the timer
+    if (!QueryPerformanceFrequency(&frequency))
+        cout << "QueryPerformanceFrequency failed!\n";
+    PCFreq = double(frequency.QuadPart) / 1000.0; // quadpart/ 1000.0 to find milliseconds
+
+    QueryPerformanceCounter(&Start); //get the start time for t1
+    cout << "I don't change\n";// Do T1 things
+    Sleep(10);
+    QueryPerformanceCounter(&EnhanceStart); //get the start time for t2 and t4
+    cout << "enhance me\n";//do the enhanced code and uninhacend code timing here
+    Sleep(100);
+    QueryPerformanceCounter(&EnhanceEnd); //get the start time for t3
+    cout << "I don't change either\n";// Do T3 things
+    Sleep(10);
+    QueryPerformanceCounter(&End); //get the start time for t2 and t4
+
+    //print values in millisecond format
+    cout << "t1 : " << double(EnhanceStart.QuadPart - Start.QuadPart) / PCFreq << "\n";
+    cout << "t2/4 : " << double(EnhanceEnd.QuadPart - EnhanceStart.QuadPart) / PCFreq << "\n";
+    cout << "t3 : " << double(End.QuadPart - EnhanceEnd.QuadPart) / PCFreq << "\n";
+    cout << "total time : " << double(End.QuadPart - Start.QuadPart) / PCFreq << "\n";
+}
 #pragma endregion
 
 void PrimeBoolOutput(bool ret)
@@ -436,5 +465,5 @@ int Barrier()
 
 
 int main() {
-    historgram_example();
+    FindingTValuesUsingCounter();
 }
