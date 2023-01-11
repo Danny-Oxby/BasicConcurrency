@@ -270,12 +270,10 @@ void printHello(int id)
 
 int Condition_varibles()
 {
-    thread* printThreads[THREADCOUNT];
-    int i;
+    thread* printThreads[THREADCOUNT]; int i;
 
     for (i = 0; i < THREADCOUNT; i++)
         printThreads[i] = new thread(printHello, i);
-
     for (i = 0; i < THREADCOUNT; i++)
         printThreads[i]->join(); // terminat all threads
 
