@@ -515,21 +515,40 @@ void deadlock_example() {
 void fixed_deadlock_example() {
     mutex m1; mutex m2;
     thread t1([&m1, &m2] {
-        m1.lock(); cout << "1. Aquired m1.\n";
-        this_thread::sleep_for(std::chrono::milliseconds(10));
-        m2.lock(); cout << "1. Aquired m2. \n";
+        bool exitt1 = false;
+        do {
+            if (m1.try_lock()) {
+                cout << "1. Aquired m1.\n";
+                this_thread::sleep_for(std::chrono::milliseconds(10));
+                if (m2.try_lock()) {
+                    cout << "1. Aquired m2. \n"; exitt1 = true;
+                    m2.unlock(); }
+               m1.unlock(); cout << "1. Release m1.\n";
+            }
+        } while (!exitt1);
+        cout << "t1 complete \n";
         });
     thread t2([&m1, &m2] {
-        m2.lock(); cout << "2. Aquired m2. \n";
-        this_thread::sleep_for(std::chrono::milliseconds(10));
-        m1.lock(); cout << "2. Aquired m1. \n";
+        bool exitt2 = false;
+        do {
+            if (m2.try_lock()) {
+                cout << "2. Aquired m2. \n";
+                this_thread::sleep_for(std::chrono::milliseconds(15));
+                if (m1.try_lock()) {
+                    cout << "2. Aquired m1. \n"; exitt2 = true;
+                    m1.unlock(); }
+                m2.unlock(); 
+                cout << "2. Release m2.\n"; }
+        } while (!exitt2);
+        cout << "t2 complete \n";
         });
 
     t1.join(); t2.join(); //close the threads
+    cout << "success";
 }
 #pragma endregion
 
 
 int main() {
-    deadlock_example();
+    fixed_deadlock_example();
 }
