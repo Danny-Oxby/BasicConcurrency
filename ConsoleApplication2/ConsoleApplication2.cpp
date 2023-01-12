@@ -25,6 +25,20 @@ void Creating_threads() {
 }
 #pragma endregion
 
+#pragma region Concurrency
+void edit_number(int a) {
+    cout << a * a; //do x
+}
+void edit_string(string a) {
+    cout << a; //do y
+}
+void example_Concurrency() {
+    thread t1(edit_number, 1); //create thread
+    thread t2(edit_string, "B\n"); //create thread
+    t1.join(); t2.join();
+}
+#pragma endregion
+
 #pragma region Nondeterminism
 void print_nondeterminism_string(std::string message) {
     for (int i = 0; i < 10; i++) {
@@ -86,6 +100,23 @@ int Race_condition()
     std::cout << "Final value: " << racy.get() << std::endl;
 
     return 0;
+}
+#pragma endregion
+
+#pragma region Normal Mutex
+int external_data = 0;
+mutex mutex_lock;
+void data_manipulation_method(int i) {
+    mutex_lock.lock(); //lock the criticla section
+    external_data =+ i;
+    cout << external_data << "\n";
+    mutex_lock.unlock(); //unlock the section
+}
+
+void base_mutex() {
+    thread t1(data_manipulation_method, 1); //create thread
+    thread t2(data_manipulation_method, -1); //create thread
+    t1.join(); t2.join();
 }
 #pragma endregion
 
@@ -463,7 +494,42 @@ int Barrier()
 }
 #pragma endregion
 
+#pragma region Deadlock
+// this example is a slightly editied version of this https://gist.github.com/ivcn/227414b3185840434718f7f6c8cbffb1
+void deadlock_example() {
+    mutex m1; mutex m2;
+    thread t1([&m1, &m2] {
+        m1.lock(); cout << "1. Aquired m1.\n";
+        this_thread::sleep_for(std::chrono::milliseconds(10));
+        m2.lock(); cout << "1. Aquired m2. \n";
+        });
+    thread t2([&m1, &m2] {
+        m2.lock(); cout << "2. Aquired m2. \n";
+        this_thread::sleep_for(std::chrono::milliseconds(10));
+        m1.lock(); cout << "2. Aquired m1. \n";
+        });
+
+    t1.join(); t2.join(); //close the threads
+}
+
+void fixed_deadlock_example() {
+    mutex m1; mutex m2;
+    thread t1([&m1, &m2] {
+        m1.lock(); cout << "1. Aquired m1.\n";
+        this_thread::sleep_for(std::chrono::milliseconds(10));
+        m2.lock(); cout << "1. Aquired m2. \n";
+        });
+    thread t2([&m1, &m2] {
+        m2.lock(); cout << "2. Aquired m2. \n";
+        this_thread::sleep_for(std::chrono::milliseconds(10));
+        m1.lock(); cout << "2. Aquired m1. \n";
+        });
+
+    t1.join(); t2.join(); //close the threads
+}
+#pragma endregion
+
 
 int main() {
-    FindingTValuesUsingCounter();
+    deadlock_example();
 }
