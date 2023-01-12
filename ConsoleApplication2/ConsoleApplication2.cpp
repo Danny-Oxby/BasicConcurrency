@@ -431,6 +431,29 @@ int ThreadPooling()
 
     return 0;
 }
+
+string threadCompressionTask(int file)
+{
+    //do file compression here
+    cout << "file compressed\n"; return "file compressed";
+}
+
+void CompressFiles()
+{
+    ThreadPool pool(4); // create a thread pool of size 4
+    vector<future<string>> filetasks;
+
+    for (int i = 0; i < 8; ++i) { // add threads for each file to the pool
+        filetasks.emplace_back(
+            pool.enqueue(threadCompressionTask, i));
+    }
+
+    for (auto&& result : filetasks) //get results from completed files
+    {
+        result.get(); //use the compressed results
+    }
+    cout << "final compressed file";
+}
 #pragma endregion
 
 #pragma region Barriers
@@ -550,5 +573,5 @@ void fixed_deadlock_example() {
 
 
 int main() {
-    fixed_deadlock_example();
+    CompressFiles();
 }
